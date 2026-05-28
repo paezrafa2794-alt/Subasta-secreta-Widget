@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subasta a Ciegas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(180,160,255,0.12);
+    --border2: rgba(180,160,255,0.25);
+    --gold: #c9a84c;
+    --gold2: #f0d080;
+    --purple: #9b7fe8;
+    --purple2: #c4a8ff;
+    --text: #e8e4f0;
+    --muted: #7a7490;
+    --danger: #e05a5a;
+    --success: #5acea0;
+    --ff-display: 'DM Serif Display', Georgia, serif;
+    --ff-mono: 'DM Mono', 'Courier New', monospace;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ff-mono);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  #app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    position: relative;
+  }
+
+  /* Grid background */
+  #app::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(155,127,232,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(155,127,232,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen {
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    z-index: 1;
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-family: var(--ff-display);
+    font-size: clamp(26px, 6vw, 38px);
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.15;
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--purple2);
+  }
+  .header .subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  /* Decorative line */
+  .deco-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--border2);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .deco-line::before, .deco-line::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--purple), transparent);
+    opacity: 0.6;
+  }
+
+  /* Form elements */
+  .field {
+    margin-bottom: 18px;
+  }
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--ff-mono);
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .field input:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(155,127,232,0.12);
+  }
+  .field input::placeholder { color: var(--muted); }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 2px;
+    font-family: var(--ff-mono);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary {
+    background: var(--purple);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--purple2); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-gold {
+    background: transparent;
+    color: var(--gold2);
+    border: 1px solid var(--gold);
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    padding: 16px 20px;
+  }
+  .btn-gold:hover { background: rgba(201,168,76,0.1); transform: translateY(-1px); }
+  .btn-gold:active { transform: translateY(0); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    font-size: 11px;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--success);
+    color: var(--success);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    padding: 12px 20px;
+    border-radius: 2px;
+    z-index: 999;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    max-width: 90vw;
+    text-align: center;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Admin trigger */
+  #admin-trigger {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 100;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--ff-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #admin-trigger:hover { color: var(--text); border-color: var(--border2); }
+
+  /* Password modal */
+  #pw-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,15,0.88);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    backdrop-filter: blur(4px);
+  }
+  #pw-overlay.active { display: flex; animation: fadeIn 0.2s ease; }
+  .pw-box {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    padding: 28px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .pw-box h3 {
+    font-family: var(--ff-display);
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+  .pw-box p {
+    color: var(--muted);
+    font-size: 11px;
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+  }
+  .pw-error {
+    color: var(--danger);
+    font-size: 11px;
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* Counter badge */
+  .bid-counter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+  }
+  .bid-counter span:first-child {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .bid-counter .count {
+    font-size: 14px;
+    color: var(--purple2);
+  }
+
+  /* Results */
+  .winner-block {
+    text-align: center;
+    padding: 28px 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .winner-block::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .winner-block .winner-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .winner-block .winner-name {
+    font-family: var(--ff-display);
+    font-size: clamp(28px, 7vw, 44px);
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.1;
+    margin-bottom: 10px;
+    word-break: break-word;
+  }
+  .winner-block .winner-amount {
+    font-size: clamp(20px, 5vw, 32px);
+    color: var(--gold2);
+    letter-spacing: 0.05em;
+  }
+
+  /* Bids table */
+  .bids-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 20px;
+  }
+  .bids-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .bids-table th {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0 10px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .bids-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .bids-table tr:last-child td { border-bottom: none; }
+  .bids-table tr.is-winner td { color: var(--gold2); }
+  .bids-table .rank {
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .bids-table .badge-win {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    background: rgba(201,168,76,0.12);
+    color: var(--gold);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 1px;
+    margin-left: 6px;
+  }
+
+  /* Btn row */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .btn-row .btn { flex: 1; }
+
+  /* No bids state */
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 20px;
+    border: 1px dashed var(--border);
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  /* Pulse animation on winner reveal */
+  @keyframes pulseGold {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+    50% { box-shadow: 0 0 0 12px rgba(201,168,76,0.08); }
+  }
+  .winner-reveal { animation: pulseGold 1.8s ease 3; }
+
+  /* Screen transition */
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .anim-slide { animation: slideIn 0.35s ease; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- SCREEN: REGISTRO DE OFERTA -->
+  <div id="screen-bid" class="screen active">
+    <div class="header">
+      <div class="eyebrow">&#9671; Sesión en curso</div>
+      <h1>Subasta a <em>Ciegas</em></h1>
+      <div class="subtitle">Registra tu oferta de forma confidencial</div>
+    </div>
+
+    <div class="bid-counter">
+      <span>Ofertas registradas</span>
+      <span class="count" id="bid-count">0</span>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label for="team-name">Nombre del equipo</label>
+        <input type="text" id="team-name" placeholder="Ej: Equipo Alfa" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="bid-amount">Oferta ($&nbsp;/&nbsp;Puntos)</label>
+        <input type="number" id="bid-amount" placeholder="0.00" min="0" step="any" autocomplete="off" />
+      </div>
+      <button class="btn btn-primary" onclick="submitBid()">
+        &#8594;&nbsp; Registrar oferta secreta
+      </button>
+    </div>
+
+    <div class="deco-line">confidencial</div>
+    <p style="text-align:center;font-size:11px;color:var(--muted);">
+      Los campos se borran automáticamente tras cada oferta.
+    </p>
+  </div>
+
+  <!-- SCREEN: PANEL ADMIN -->
+  <div id="screen-admin" class="screen">
+    <div class="header">
+      <div class="eyebrow">&#9632; Panel de control</div>
+      <h1><em>Administrador</em></h1>
+    </div>
+
+    <div id="pre-reveal">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Ofertas registradas</div>
+          <div id="admin-bid-count" style="font-family:var(--ff-display);font-size:52px;color:var(--purple2);line-height:1;">0</div>
+        </div>
+      </div>
+      <button class="btn btn-gold" onclick="revealWinner()" id="reveal-btn">
+        &#9670;&nbsp; Revelar ganador
+      </button>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-ghost" onclick="closeAdmin()">&#8592; Volver</button>
+        <button class="btn btn-ghost" onclick="resetAuction()">&#10005;&nbsp; Reiniciar subasta</button>
+      </div>
+    </div>
+
+    <div id="post-reveal" style="display:none;" class="anim-slide">
+      <div class="winner-block" id="winner-block">
+        <div class="winner-label">&#9670; Adjudicado a</div>
+        <div class="winner-name" id="winner-name">—</div>
+        <div class="winner-amount" id="winner-amount">—</div>
+      </div>
+
+      <div class="deco-line">historial de ofertas</div>
+
+      <div id="bids-table-container" class="bids-table-wrap"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="closeAdmin()">&#8592; Volver</button>
+        <button class="btn btn-ghost" onclick="resetAuction()">&#10005;&nbsp; Nueva subasta</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Admin trigger -->
+<button id="admin-trigger" onclick="openAdminGate()">&#9654; Panel de control</button>
+
+<!-- Password overlay -->
+<div id="pw-overlay">
+  <div class="pw-box">
+    <h3>Acceso restringido</h3>
+    <p>Introduce la contraseña del docente para continuar.</p>
+    <div class="field">
+      <label for="pw-input">Contraseña</label>
+      <input type="password" id="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPassword()" autocomplete="off" />
+    </div>
+    <div class="pw-error" id="pw-error">Contraseña incorrecta. Inténtalo de nuevo.</div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-ghost" onclick="closePwOverlay()">Cancelar</button>
+      <button class="btn btn-primary" onclick="checkPassword()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+  const ADMIN_PASSWORD = 'admin123';
+  let bids = [];
+
+  function showToast(msg, color) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.borderColor = color || 'var(--success)';
+    t.style.color = color || 'var(--success)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  function setScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function submitBid() {
+    const name = document.getElementById('team-name').value.trim();
+    const amount = parseFloat(document.getElementById('bid-amount').value);
+
+    if (!name) {
+      document.getElementById('team-name').focus();
+      showToast('Escribe el nombre del equipo.', 'var(--danger)');
+      return;
+    }
+    if (isNaN(amount) || amount < 0) {
+      document.getElementById('bid-amount').focus();
+      showToast('Ingresa una oferta válida.', 'var(--danger)');
+      return;
+    }
+
+    bids.push({ name, amount });
+    document.getElementById('team-name').value = '';
+    document.getElementById('bid-amount').value = '';
+    document.getElementById('bid-count').textContent = bids.length;
+    document.getElementById('team-name').focus();
+
+    showToast('\u2714 Oferta registrada. Siguiente equipo\u2026');
+  }
+
+  function openAdminGate() {
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-error').style.display = 'none';
+    document.getElementById('pw-overlay').classList.add('active');
+    setTimeout(() => document.getElementById('pw-input').focus(), 50);
+  }
+
+  function closePwOverlay() {
+    document.getElementById('pw-overlay').classList.remove('active');
+  }
+
+  function checkPassword() {
+    const val = document.getElementById('pw-input').value;
+    if (val === ADMIN_PASSWORD) {
+      closePwOverlay();
+      openAdmin();
+    } else {
+      document.getElementById('pw-error').style.display = 'block';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  }
+
+  function openAdmin() {
+    document.getElementById('admin-bid-count').textContent = bids.length;
+    document.getElementById('pre-reveal').style.display = 'block';
+    document.getElementById('post-reveal').style.display = 'none';
+    setScreen('screen-admin');
+  }
+
+  function closeAdmin() {
+    setScreen('screen-bid');
+  }
+
+  function revealWinner() {
+    if (bids.length === 0) {
+      showToast('No hay ofertas registradas aún.', 'var(--danger)');
+      return;
+    }
+
+    const sorted = [...bids].sort((a, b) => b.amount - a.amount);
+    const winner = sorted[0];
+
+    document.getElementById('winner-name').textContent = winner.name;
+    document.getElementById('winner-amount').textContent =
+      '$\u202F' + winner.amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const wb = document.getElementById('winner-block');
+    wb.classList.remove('winner-reveal');
+    void wb.offsetWidth;
+    wb.classList.add('winner-reveal');
+
+    const container = document.getElementById('bids-table-container');
+    if (sorted.length === 0) {
+      container.innerHTML = '<div class="empty-state">Sin ofertas registradas.</div>';
+    } else {
+      let rows = '';
+      sorted.forEach((b, i) => {
+        const isW = i === 0;
+        rows += `<tr class="${isW ? 'is-winner' : ''}">
+          <td class="rank">${i + 1}</td>
+          <td>${b.name}${isW ? '<span class="badge-win">&#9670; ganador</span>' : ''}</td>
+          <td style="text-align:right;">$&nbsp;${b.amount.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+        </tr>`;
+      });
+      container.innerHTML = `
+        <table class="bids-table">
+          <thead><tr>
+            <th>#</th><th>Equipo</th><th style="text-align:right;">Oferta</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    document.getElementById('pre-reveal').style.display = 'none';
+    document.getElementById('post-reveal').style.display = 'block';
+    document.getElementById('post-reveal').className = 'anim-slide';
+  }
+
+  function resetAuction() {
+    if (!confirm('¿Confirmas reiniciar la subasta? Se borrarán todas las ofertas.')) return;
+    bids = [];
+    document.getElementById('bid-count').textContent = '0';
+    document.getElementById('team-name').value = '';
+    document.getElementById('bid-amount').value = '';
+    closePwOverlay();
+    setScreen('screen-bid');
+    showToast('Subasta reiniciada. ¡Nuevo activo!');
+  }
+</script>
+</body>
+</html>
